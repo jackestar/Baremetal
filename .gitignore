@@ -1,5 +1,7 @@
 *.elf
 *.hex
 *.bin
+*.asm
+tmp*
 build
 .vscode

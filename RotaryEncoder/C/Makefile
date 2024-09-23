@@ -1,5 +1,5 @@
 # Variables
-filename = baremetal
+filename = main
 port = /dev/ttyUSB0
 mcu = m328p
 programmer = arduino
@@ -9,7 +9,7 @@ default: build/$(filename).hex
 
 build/$(filename).elf: $(filename).c
 	@if [ ! -d "build" ]; then mkdir build; fi
-	avr-gcc -O3 -o $@ $<
+	avr-gcc -o $@ $<
 
 build/$(filename).hex: build/$(filename).elf
 	avr-objcopy -j .text -j .data -O ihex $< $@
