@@ -28,6 +28,9 @@ int main(void)
     // Fix frequency PWM
     TCCR2A = 0 | (1 << COM2A1) | (1 << WGM21) | (1 << WGM20);
 
+    // No prescaler
+    TCCR2B = 0 | (1 << CS20);
+
     uint8_t prev_position = 0;
 
     RotaryEncoder encoder(&PIND, PIND5, &PIND, PIND6, 60);
@@ -48,9 +51,6 @@ int main(void)
             PORTB ^= (1 << PORTB4);
 
         prev_position = encoder.position;
-
-        // No prescaler
-        TCCR2B = 0 | (1 << CS20);
 
         OCR2A = encoder.position * 255 / encoder.stepPerRevolution;
 
