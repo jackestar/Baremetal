@@ -1,37 +1,92 @@
 # Variables
 filename = main
 port = /dev/ttyUSB0
-mcu = m328p
+mcu = atmega328p
+f_cpu = 16000000L
 programmer = arduino
 
+# Compiler and tools
+AVR_GCC = avr-gcc
+AVR_GXX = avr-g++
+AVR_OBJCOPY = avr-objcopy
+AVRDUDE = avrdude
+AVR_SIZE = avr-size
+
+# Build directories
+build_dir = build
+debug_obj_dir = $(build_dir)/debug/obj
+production_obj_dir = $(build_dir)/production/obj
+obj_dir = $(debug_obj_dir)
+
+# Compiler flags (default: debug build with warnings)
+COMMON_FLAGS = -c -g -Os -ffunction-sections -fdata-sections -MMD -mmcu=$(mcu) -DF_CPU=$(f_cpu)
+CFLAGS = $(COMMON_FLAGS)
+CXXFLAGS = $(COMMON_FLAGS) -fno-exceptions -fno-threadsafe-statics -fno-rtti
+LDFLAGS = -mmcu=$(mcu) -Wl,--gc-sections
+
+# Source files (handles both .c and .cpp via filename=)
+src_files = $(filename)
+
+# Objects
+obj_files = $(addprefix $(obj_dir)/, $(addsuffix .o, $(basename $(notdir $(src_files)))))
+
+# Link objects
+link_objects = $(obj_files)
+
+# Includes
+includes = -I.
+
 # Targets
-default: build/$(filename).hex
+default: $(build_dir)/$(filename).hex
 
-build/$(filename).elf: $(filename).c
-	@if [ ! -d "build" ]; then mkdir build; fi
-	avr-gcc -o $@ $<
+# Compile C files
+$(obj_dir)/%.o: %.c | $(obj_dir)
+	$(AVR_GCC) $(CFLAGS) $(includes) $< -o $@
 
-build/$(filename).hex: build/$(filename).elf
-	avr-objcopy -j .text -j .data -O ihex $< $@
+# Compile C++ files
+$(obj_dir)/%.o: %.cpp | $(obj_dir)
+	$(AVR_GXX) $(CXXFLAGS) $(includes) $< -o $@
 
-upload: build/$(filename).hex
-	avrdude -p $(mcu) -c $(programmer) -P $(port) -U flash:w:$<
+# Create build directories
+$(debug_obj_dir) $(production_obj_dir) $(build_dir):
+	mkdir -p $@
 
-# Forzar la programación ignorando la firma y la verificación
-upload-force: build/$(filename).hex
-	avrdude -F -V -p $(mcu) -c $(programmer) -P $(port) -U flash:w:$<
+# Link to .elf
+$(build_dir)/$(filename).elf: $(link_objects) | $(build_dir)
+	$(AVR_GXX) $(LDFLAGS) -o "$@" $^ -lm
 
-# Mostrar ayuda
+# Create .hex from .elf
+$(build_dir)/$(filename).hex: $(build_dir)/$(filename).elf
+	$(AVR_OBJCOPY) -j .text -j .data -O ihex "$<" "$@"
+
+# Production target (no debug, suppressed warnings)
+production: obj_dir = $(production_obj_dir)
+production: COMMON_FLAGS = -c -Os -w -ffunction-sections -fdata-sections -MMD -mmcu=$(mcu) -DF_CPU=$(f_cpu)
+production: CFLAGS = $(COMMON_FLAGS)
+production: CXXFLAGS = $(COMMON_FLAGS) -fno-exceptions -fno-threadsafe-statics -fno-rtti
+production: $(build_dir)/$(filename).hex
+
+# Upload targets
+upload: $(build_dir)/$(filename).hex
+	$(AVRDUDE) -v -p $(mcu) -c $(programmer) -P $(port) -b 115200 -D -U flash:w:$<:i
+
+upload-force: $(build_dir)/$(filename).hex
+	$(AVRDUDE) -v -p $(mcu) -c $(programmer) -P $(port) -b 115200 -D -F -U flash:w:$<:i
+
+size: $(build_dir)/$(filename).elf
+	$(AVR_SIZE) -A "$<"
+
+clean:
+	rm -rf $(build_dir)
+
 help:
-	@echo "Uso del Makefile:"
-	@echo "  Makefile                   - Compila $(filename).c y genera los archivos .elf y .hex"
-	@echo "  make upload [opc]          - Programa el ATmega328P con el archivo .hex generado"
-	@echo "  make upload-force [opc]    - Fuerza la programación del ATmega328P, ignorando la verificación y la firma"
-	@echo ""
-	@echo "Opciones [opc]"
-	@echo "  filename=                  - Nombre del archivo a compilar"
-	@echo "  port=                      - Puerto (default $(port))"
-	@echo "  mcu=                       - microcontrolador (default $(mcu))"
-	@echo "  programmer=                - programador (default $(programmer))"
-	@echo "Este Makefile está orientado al Arduino UNO R3 con un ATmega328P."
-	@echo "Para utilizar otro microcontrolador AVR, actualiza las variables 'mcu', 'programmer' y declara los macros correspondientes."
+	@echo "Makefile Usage:"
+	@echo "  make              - Build debug version with warnings"
+	@echo "  make production   - Build optimized version without debug info"
+	@echo "  make upload       - Upload firmware"
+	@echo "  make upload-force - Force upload"
+	@echo "  make clean        - Remove build directory"
+	@echo "  make size         - Show program size"
+
+.SUFFIXES:  # Disable implicit rules
+.PHONY: default production upload upload-force size clean help
