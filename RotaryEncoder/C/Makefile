@@ -1,3 +1,5 @@
+# Makefile AVR Version 2.1
+
 # Variables
 filename = main
 port = /dev/ttyUSB0
@@ -87,6 +89,13 @@ help:
 	@echo "  make upload-force - Force upload"
 	@echo "  make clean        - Remove build directory"
 	@echo "  make size         - Show program size"
+	@echo ""
+	@echo "Variables:"
+	@echo "  filename	    - Filename without extention [default main]"
+	@echo "  port		    - Select the port to be use [default /dev/ttyUSB0]"
+	@echo "  mcu		    - Select the microcontroller [default atmega328p]"
+	@echo "  f_cpu		    - Select the frequency [default 16000000L]"
+	@echo "  programmer	    - Select the programmer [default arduino]"
 
 .SUFFIXES:  # Disable implicit rules
 .PHONY: default production upload upload-force size clean help

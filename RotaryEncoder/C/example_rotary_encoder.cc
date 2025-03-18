@@ -9,7 +9,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#include "rotaryEncoder.cpp"
+#include "rotary_encoder.cc"
 
 int main(void)
 {
@@ -37,7 +37,7 @@ int main(void)
 
     while (1)
     {
-        encoder.read();
+        encoder.Read();
         if (encoder.direction == ENCODER_CLOCKWISE) {
             PORTB |= (1 << PORTB5);
         } else if (encoder.direction == ENCODER_COUNTERCLOCKWISE) {
@@ -45,7 +45,7 @@ int main(void)
         }
 
         if (PIND & (1 << PIND7))
-            encoder.reset();
+            encoder.Reset();
 
         if (encoder.position == encoder.stepPerRevolution && prev_position != encoder.position)
             PORTB ^= (1 << PORTB4);
