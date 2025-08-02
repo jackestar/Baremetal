@@ -45,13 +45,8 @@ default: $(build_dir)/$(filename).hex
 $(obj_dir)/%.o: %.c | $(obj_dir)
 	$(AVR_GCC) $(CFLAGS) $(includes) $< -o $@
 
-
-# Compile C++ files (.cpp)
+# Compile C++ files
 $(obj_dir)/%.o: %.cpp | $(obj_dir)
-	$(AVR_GXX) $(CXXFLAGS) $(includes) $< -o $@
-
-# Compile C++ files (.cc)
-$(obj_dir)/%.o: %.cc | $(obj_dir)
 	$(AVR_GXX) $(CXXFLAGS) $(includes) $< -o $@
 
 # Create build directories

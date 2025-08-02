@@ -8,7 +8,9 @@
 #ifndef ROTARY_ENCODER_H_
 #define ROTARY_ENCODER_H_
 
+#ifndef _AVR_IO_H_
 #include <avr/io.h>
+#endif
 
 /**
  * @enum EncoderDirection
@@ -18,6 +20,15 @@ enum EncoderDirection {
     ENCODER_STOPPED,        /// No rotation
     ENCODER_CLOCKWISE,      /// Rotating clockwise
     ENCODER_COUNTERCLOCKWISE/// Rotating counterclockwise
+};
+
+/**
+ * @enum Overflow
+ * @brief Overflow handling
+ */
+enum Overflow {
+  STOP,                 /// Stay at the end/start
+  LOOP                  /// Back to end/start
 };
 
 /**
@@ -60,12 +71,13 @@ class RotaryEncoder {
 
   // Public members
   EncoderDirection direction;         ///< Current rotation direction.
-  volatile uint8_t *pinAPort;           ///< Pointer to port for A signal.
+  volatile uint8_t *pinAPort;         ///< Pointer to port for A signal.
   uint8_t pinABit;                    ///< Bit number for A signal.
-  volatile uint8_t *pinBPort;           ///< Pointer to port for B signal.
+  volatile uint8_t *pinBPort;         ///< Pointer to port for B signal.
   uint8_t pinBBit;                    ///< Bit number for B signal.
   uint8_t stepPerRevolution;          ///< Number of steps per full revolution.
   uint8_t position;                   ///< Current position (8-bit resolution).
+  uint8_t overflow = STOP;            ///< Overflow handling
 
  private:
   uint8_t step_;                      ///< Internal state tracking the last step.

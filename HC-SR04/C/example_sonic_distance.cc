@@ -1,3 +1,11 @@
+/**
+ * @file example_sonic_distance.cpp
+ * @brief Example usage of the SonicDistance class with an HC-SR04 sensor on AVR.
+ *
+ * Connect the trigger and echo pins to the appropriate AVR ports and bits.
+ * This example sends the measured distance over USART every second.
+ */
+
 #ifndef __AVR_ATmega328P__
 #define __AVR_ATmega328P__
 #endif
@@ -8,19 +16,8 @@
 
 #include <avr/io.h>
 #include <util/delay.h>
+#include "sonic-distance.cc"
 
-// Sensor properties
-#define C_SOUND 343000.0 // (mm/s)
-
-// For a microsecond precision
-#define UNIT_LIMIT 0xffff // 16bits
-
-#define C_LOOP 9
-#define CYCLE_LOOP C_LOOP * C_SOUND / (float)F_CPU
-#define C_CONF 4
-#define CYCLE_CONF C_CONF * C_SOUND / (float)F_CPU
-
-// USART
 #define BAUD_RATE 9600ULL
 #define UBRR0_VALUE (F_CPU / ((16 * BAUD_RATE)) - 1)
 
@@ -30,37 +27,26 @@ void send_int(int num);
 void send_flt_LUT16(float num, uint8_t mant);
 void setupUSART();
 
-int main()
-{   
-    // Config Ports
-        DDRB |= (1 << DDB0);  // Trig
-        DDRB &= ~(1 << DDB1); // Echo
+int main() {
+  setupUSART();
+  // Config Ports
+  DDRB |= (1 << DDB0);  // Trig
+  DDRB &= ~(1 << DDB1); // Echo
+  // Example: Trig = PORTB0, Echo = PINB1
+  SonicDistance sensor(&PORTB, &PINB, DDB0, DDB1);
+  // send_chr('\n');
 
-    setupUSART();
-
-    while (1)
-    {
-            // Send trigger
-    PORTB |= (1 << PORTB0);
-    _delay_us(10);
-    PORTB &= ~(1 << PORTB0);
-
-    uint16_t units = 0;
-
-    // wait until echo is true
-    while (!(PINB & (1 << PINB1)))
-        asm("nop");
-    while ((PINB & (1 << PINB1)) && units < UNIT_LIMIT) {
-        units++;
-    }
-
-    // Calculate distance (meters)
-    float distance = (units * CYCLE_LOOP + CYCLE_CONF)/2.0;
-    send_str("\nDistancia: ");
-    send_flt_LUT16(distance,4);
+  while (1) {
+    float dist = sensor.getDistance();
+    // send_
+    send_str("\nDistance: ");
+    send_flt_LUT16(dist, 4);
+    send_str(" mm\n");
     _delay_ms(1000);
     }
-}
+  return 0;
+
+  }
 
 void send_chr(char c) {
   while (!(UCSR0A & (1 << UDRE0)))
@@ -117,7 +103,6 @@ void send_flt_LUT16(float num, uint8_t mant) {
     send_int(int((num - ent) * powers[mant]));
     }
   }
-
 void setupUSART() {
   UCSR0B |= (1 << TXEN0);
 

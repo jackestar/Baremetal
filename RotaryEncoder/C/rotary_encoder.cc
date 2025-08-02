@@ -23,7 +23,10 @@ inline void RotaryEncoder::PositionInc() {
   if (position < stepPerRevolution) {
     position++;
   } else {
-    position = 0;
+    if (overflow == LOOP)
+      position = 0;
+    else if (overflow == STOP)
+      position = stepPerRevolution;
   }
 }
 
@@ -31,7 +34,10 @@ inline void RotaryEncoder::PositionDec() {
   if (position > 0) {
     position--;
   } else {
-    position = stepPerRevolution;
+    if (overflow == STOP)
+      position = 0;
+    else if (overflow == LOOP)
+      position = stepPerRevolution;
   }
 }
 
