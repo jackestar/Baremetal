@@ -20,9 +20,7 @@
 #define C_CONF 4
 #define CYCLE_CONF (C_CONF * C_SOUND / (float)F_CPU)
 
-#ifndef _UTIL_DELAY_H_
 #include <util/delay.h>
-#endif
 
 /**
  * @class SonicDistance
