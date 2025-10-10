@@ -24,6 +24,7 @@
 uint8_t i2c_data_EEA = 0x00;
 uint8_t i2c_addr = 0x00;
 uint8_t I2C_send_ACK_stop = 0;
+uint8_t I2C_ended = 1;
 uint16_t i2c_queue = 0;
 bool i2c_IO; // 0 = write, 1 = read
 
@@ -32,6 +33,7 @@ USART serial;
 #endif
 
 inline void I2C_start(void) {
+    I2C_ended = 0;
     // i2c_state = 0; // reset state machine
     TWCR = _BV(TWINT) | _BV(TWSTA) | _BV(TWEN) | _BV(TWIE);
 }
@@ -39,6 +41,7 @@ inline void I2C_start(void) {
 void I2C_stop(void) {
     TWCR = _BV(TWINT) | _BV(TWSTO) | _BV(TWEN);
     I2C_send_ACK_stop = 0;
+    I2C_ended = 1;
 }
 
 inline void I2C_send_ACK(void) {
@@ -61,12 +64,20 @@ void I2C_SLAR() {
 }
 
 void I2C_send_EEA() {
-    TWDR = i2c_data_EEA;
+    TWDR = i2c_data_EEA & 0x7f;
     I2C_send_ACK();
 };
 
 void I2C_send_queue() {
+    TWDR = 0x00; // data from queue
+    i2c_queue--;
 
+    if ((i2c_queue == 0) || ((i2c_data_EEA % 16) == 15)) {
+        I2C_send_ACK_stop = 1; // signal to send STOP on next ISR exit
+    }
+
+    i2c_data_EEA = (i2c_data_EEA + 1) % 512;
+    I2C_send_ACK();
 }
 
 void I2C_read(void) {
@@ -109,7 +120,8 @@ ISR(TWI_vect) {
             I2C_start();
         else if (i2c_queue) {
             I2C_send_queue();
-            i2c_queue--;
+        } else {
+            I2C_send_ACK_stop = 1;
         }
         errorHandle(TW_STATUS, "SLA+W/DATA Received code: ");
         // else Data queue logic
@@ -122,12 +134,12 @@ ISR(TWI_vect) {
         // Reception
     case TW_MR_DATA_NACK:		// 0x58 <- data received, NACK returned
     case TW_MR_SLA_NACK:		// 0x48 <- SLA+R transmitted, NACK received
-        if (i2c_queue) {
-            errorHandle(TW_STATUS, "NACK error code: ");
-            i2c_queue = 0;
-        } else {
-            errorHandle(TW_STATUS, "NACK code: ");
-        }
+        // if (i2c_queue) {
+        errorHandle(TW_STATUS, "NACK error code: ");
+        // i2c_queue = 0;
+    // } else {
+        // errorHandle(TW_STATUS, "NACK code: ");
+    // }
 
         I2C_send_ACK_stop = 1;
         break;
@@ -164,6 +176,12 @@ ISR(TWI_vect) {
 
 // [S] [CSW]0 ACK [EEA] [S] [CSR]1 ACK [DATA] ...
 
+// EEPROM WRITE SEQUENCE
+
+// Page write
+// [S] [CSW]0 ACK [EEA n] ACK [DATA 0] ACK ... ACK [DATA n] ACK ... ACK [DATA n+15] ACK [STOP]
+// wait 8ms to write the next page
+
 int main(void) {
     // TWI Bit Rate Register
     TWBR = TW_RATE;
@@ -177,18 +195,28 @@ int main(void) {
     const uint8_t EE_i2c_address = 0b1010000;
     serial.sendStr("SETUP\n");
 
+    i2c_data_EEA = EE_address;
+    i2c_addr = EE_i2c_address & ~(1 << 1) | ((EE_address) >> 7) << 1;;
+    i2c_IO = 1;
+    i2c_queue = 512;
+
 
     while (1) {
+        // i2c_queue = 512;
         // set address and direction
         serial.sendStr("LOOP\n");
-        i2c_data_EEA = EE_address & 0x7f;
-        i2c_addr = EE_i2c_address & ~(1 << 1) | ((EE_address) >> 7)<< 1;;
-        i2c_IO = 1;
-        i2c_queue = 512;
 
-        I2C_start();
-
-        _delay_ms(5000);
+        if (I2C_ended && i2c_queue) {
+            if (!i2c_IO) _delay_ms(8); 
+            I2C_start();
+        } else {
+            serial.sendStr("end\n");
+            _delay_ms(5000);
+        }
+        serial.sendStr("i2c_queue: ");
+        serial.sendInt(i2c_queue);
+        serial.sendStr("\n");
+        
     }
 
     return 0;
