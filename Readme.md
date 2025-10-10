@@ -22,4 +22,13 @@ Where possible, libraries will be written in C++ instead of C, and will follow "
 
 ### List
 
-* Incremental Encoder
+**AVR**
+
+* [Incremental Encoder](./AVR/RotaryEncoder/)
+* [HC-SR04](./AVR/HC-SR04/)
+* [SLX24C04](./AVR/SLX24C04/)
+* [USART](./AVR/USART/)
+
+**IDF**
+
+* [Stepper](./IDF/Stepper/)
