@@ -6,6 +6,7 @@ port = /dev/ttyUSB0
 mcu = atmega328p
 f_cpu = 16000000L
 programmer = arduino
+baud=115200 # 57600 (old bootloader)
 
 # Compiler and tools
 AVR_GCC = avr-gcc
@@ -75,10 +76,10 @@ production: $(build_dir)/$(filename).hex
 
 # Upload targets
 upload: $(build_dir)/$(filename).hex
-	$(AVRDUDE) -v -p $(mcu) -c $(programmer) -P $(port) -b 115200 -D -U flash:w:$<:i
+	$(AVRDUDE) -v -p $(mcu) -c $(programmer) -P $(port) -b $(baud) -D -U flash:w:$<:i
 
 upload-force: $(build_dir)/$(filename).hex
-	$(AVRDUDE) -v -p $(mcu) -c $(programmer) -P $(port) -b 115200 -D -F -U flash:w:$<:i
+	$(AVRDUDE) -v -p $(mcu) -c $(programmer) -P $(port) -b $(baud) -D -F -U flash:w:$<:i
 
 size: $(build_dir)/$(filename).elf
 	$(AVR_SIZE) -A "$<"
@@ -101,6 +102,7 @@ help:
 	@echo "  mcu		    - Select the microcontroller [default atmega328p]"
 	@echo "  f_cpu		    - Select the frequency [default 16000000L]"
 	@echo "  programmer	    - Select the programmer [default arduino]"
+	@echo "  baud	    	- baud rate [default 115200], use 57600 for old bootloader"
 
 .SUFFIXES:  # Disable implicit rules
 .PHONY: default production upload upload-force size clean help
