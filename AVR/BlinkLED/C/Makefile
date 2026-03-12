@@ -97,7 +97,7 @@ help:
 	@echo "  make size         - Show program size"
 	@echo ""
 	@echo "Variables:"
-	@echo "  filename	    - Filename without extention [default main]"
+	@echo "  filename	    - Filename without extension [default main]"
 	@echo "  port		    - Select the port to be use [default /dev/ttyUSB0]"
 	@echo "  mcu		    - Select the microcontroller [default atmega328p]"
 	@echo "  f_cpu		    - Select the frequency [default 16000000L]"
